@@ -7,7 +7,7 @@ const char *password = "----";
 
 const char *udpAddress = "192.168.2.103";  // Server IP address
 const int udpPort = 11;                  // Server Port
-int vt1, vm1, vb1,vt2, vm2, vb2;
+int vt1, vm1, vb1,vt2, vm2, vb2; // vibration top, middle, bottom for coord1 and coord2
 
 WiFiUDP udp;
 
@@ -49,9 +49,30 @@ void loop() {
     if (len > 0) {
       incomingPacket[len] = '\0';  // Null-terminate the string
     }
-    sscanf(incomingPacket, "%d,%d,%d %d,%d,%d", &vt1, &vm1, &vb1, &vt2, &vm2, &vb2);
-    Serial.printf("Received integers: %d, %d, %d, %d, %d, %d\n", vt1, vm1, vb1, vt2, vm2, vb2);
-    sendVibration(vt1, vm1, vb1);
+    Serial.print("Received JSON: ");
+    Serial.println(incomingPacket);
+
+    // JSON parsing
+    StaticJsonDocument<256> doc;
+    DeserializationError error = deserializeJson(doc, packetBuffer);
+    
+    if (!error) {
+        JsonArray coord1 = doc["coord1"];
+        vt1 = coord1[0];
+        vm1 = coord1[1];
+        vb1 = coord1[2];
+        JsonArray coord2 = doc["coord2"];
+        vt2 = coord2[0];
+        vm2 = coord2[1];
+        vb2 = coord2[2];
+        sendVibration(vt1, vm1, vb1);
+        delay(1000);  // Pause for 1 second
+        sendVibration(vt2, vm2, vb2);
+    } else {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+    }
+    
   }
 
   delay(100);  // Delay between sends
